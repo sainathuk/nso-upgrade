@@ -1,0 +1,46 @@
+- hosts: "{{ host }}"
+  user: root
+  tasks:
+
+  - name: Installing NSO
+    shell: "sh {{ nsoPath }} --system-install"
+    register: installOp
+
+  - name: Get install dir name
+    shell: "basename {{ nsoPath }} | awk -F 'linux' '{print $1}' | sed s/.$// | sed s/nso/ncs/"
+    when: installOp is succeeded
+    register: installDirName
+
+  - name: Check new install dir
+    stat:
+      path: "/opt/ncs/{{ installDirName.stdout }}"
+    register: installDir
+    ignore_errors: yes
+
+  - name: Unlink current dir
+    file:
+      path: "/opt/ncs/current"
+      state: absent
+    when: installDir.stat.exists == True
+    register: unlinkOp
+
+  - name: Link latest nso to current
+    file:
+      src: '/opt/ncs/{{ installDirName.stdout }}'
+      dest: '/opt/ncs/current'
+      state: link
+    when: unlinkOp is succeeded
+    register: linkOp
+
+  - name: Nso restart
+    shell: "/etc/init.d/ncs restart"
+    when: nsoRestartN != "WORESTART" and linkOp is succeeded
+
+  - name: Nso version
+    shell: "echo 'show ncs-state version' | /opt/ncs/current/bin/ncs_cli -u admin -C"
+    register: nsoVersion
+
+  - debug:
+      msg="Nso current version {{ nsoVersion.stdout }}"
+    no_log: false
+    

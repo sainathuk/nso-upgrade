@@ -1,0 +1,8 @@
+[CFS]
+kibacfs2
+
+[RFS]
+kibarfs2
+
+[local]
+localhost

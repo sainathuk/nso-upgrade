@@ -1,0 +1,130 @@
+#!/bin/sh
+#
+# description: CLI for NSO software and service packages upgrade automation script
+#
+# %filespec: nso-upgrade %date_created: Oct 22 11:08:06 2019 % %created_by: sainkris % %state: %
+#
+
+#set -x
+# Source environment
+
+progName="nso-upgrade"
+
+usage() {
+    cat <<EOU
+Usage:
+ $progName ( --host, -h <hostname|hostgroup>| [ --copy-files, -c <Local path> <Remote path> | --nso-backup, -b | --nso-upgrade, -n <Remote path> --wo-nso-restart | --service-upgrade, -s <Remote path> | --help ] )
+    
+    --host, -h              : Host name or host group from inventory file (Multiple hosts can be given as comma separated).
+    --copy-files, -c        : Upload the files from client host to remote host; Need local path and remote path as parameters.
+                               Ex. sh $progName -h NSOCFS1 -c /tmp/test.tar /tmp/test.tar
+    --nso-backup, -b        : Execute ncs-backup command to all the hosts
+                               Ex. sh $progName -h NSOCFS1 -b
+    --nso-upgrade, -n       : Upgrade NSO with the given nso bin file; The path should be remote file path.
+                               Ex. sh $progName -h NSOCFS1 -n /tmp/nso-1.2.3.linux.x86_64.installer.bin --wo-nso-restart
+    --service-upgrade, -s   : Upgrade NSO service packages with the given bundle file; The path should be remote file path.
+                               Ex. sh $progName -h NSOCFS1 -s /tmp/bundle.tar.gz --wo-nso-restart
+    
+EOU
+}
+
+##############
+#  MAIN body
+##############
+
+if [ $# -gt 0 ]; then    
+  copy=false
+  nsoUpg=false
+  serUpg=false
+  backup=false
+  nsoRestart="RESTART"
+  nsoRestartN="RESTART"
+
+  for opt in "$@"
+  do
+    case $opt in
+    
+    --host|-h)
+      shift
+      [ $# -eq 0 ] && echo "Please provide the hostname" && usage && exit 1;
+      host=$1
+      shift
+    ;;
+    --copy-files|-c)  
+      shift
+      [ $# -eq 0 ] && echo "Please provide the local file path" && usage && exit 1;
+      localPath=$1
+      shift
+      [ $# -eq 0 ] && echo "Please provide the remote file path" && usage && exit 1;
+      remotePath=$1
+      shift      
+      copy=true        
+    ;;
+    --nso-backup|-b)            
+      backup=true
+    ;;
+    --nso-upgrade|-n)          
+      shift    
+      [ $# -eq 0 ] && echo "Please provide the NSO installation file path" && usage && exit 1;
+      nsoPath=$1
+      shift     
+      [ $# -ge 1 ] && [ $1 = "--wo-nso-restart" ] && nsoRestartN="WORESTART" && shift 
+      nsoUpg=true
+    ;;
+    --service-upgrade|-s)          
+      shift    
+      [ $# -eq 0 ] && echo "Please provide the serice package bundle file path" && usage && exit 1;
+      bundlePath=$1
+      shift     
+      [ $# -ge 1 ] && [ $1 = "--wo-nso-restart" ] && nsoRestart="WORESTART" && shift
+      serUpg=true
+    ;;
+    --help)
+      usage
+      exit 0 ;
+    ;;
+    *)
+    ;;
+    esac
+  done
+else
+  echo "Please provide parameters!";
+  usage
+  exit 1 ;
+fi
+
+rc1=0
+rc2=0
+rc3=0
+rc4=0
+
+if [ -z $host ]; then
+  echo "host is mandatory parameters, Please provide -h <hostname>"
+  usage
+  exit 1;
+fi
+  
+if [ $backup = true ]; then
+  ansible -i inventory $host -m shell -a '/opt/ncs/current/bin/ncs-backup' -u root
+  rc1=$?;
+fi
+
+if [ $copy = true ]; then  
+  ansible-playbook -i inventory copy-play.yaml --extra-vars '{"host":'$host', "localPath":'$localPath', "remotePath":'$remotePath'}' | sed 's/\\n/\n/g'
+  rc2=$?;
+fi
+
+if [ $nsoUpg = true ]; then  
+  ansible-playbook -i inventory nsoUpg-play.yaml --extra-vars '{"host":'$host', "nsoPath":'$nsoPath', "nsoRestartN":'$nsoRestartN'}' | sed 's/\\n/\n/g'
+  rc3=$?;
+fi
+
+if [ $serUpg = true ]; then  
+  ansible-playbook -i inventory serUpg-play.yaml --extra-vars '{"host":'$host', "bundlePath":'$bundlePath', "nsoRestart":'$nsoRestart'}' | sed 's/\\n/\n/g'
+  rc4=$?;
+fi
+
+[ $copy = false -a $nsoUpg = false -a $serUpg = false -a $backup = false ] && echo "Please select any actions!" && usage && exit 0;
+
+exit $rc1 && $rc2 && $rc3 && $rc4
+

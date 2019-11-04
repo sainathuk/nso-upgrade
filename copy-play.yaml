@@ -1,0 +1,15 @@
+- hosts: "{{ host }}"
+  user: root
+  tasks:
+  - name: Creates remote directory
+    file: path="{{ remotePath }}" state=directory
+
+  - name: Copy file to remote host
+    copy: src="{{ localPath }}" dest="{{ remotePath }}"
+    register: copyFlag
+    failed_when: copyFlag is failed
+
+  - debug: msg="File uploaded successfully"
+    when: copyFlag is succeeded
+    ignore_errors: yes
+

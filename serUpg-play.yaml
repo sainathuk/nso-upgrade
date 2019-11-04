@@ -1,0 +1,53 @@
+- hosts: "{{ host }}"
+  user: root
+  no_log: false
+  tasks:
+  - name: Remove old packages
+    shell: "\\rm -rf /var/opt/ncs/packages/rmno-*"
+    register: rmPack
+    args:
+      warn: false
+
+  - name: Unarchive rmno bundle to nso packages dir
+    unarchive:
+      src: "{{ bundlePath }}"
+      dest: "/var/opt/ncs/packages/"
+      remote_src: yes
+    register: unarch
+    when: rmPack is succeeded
+
+  - name: Nso packages reload
+    shell: "echo 'packages reload force' | /opt/ncs/current/bin/ncs_cli -u admin -C"
+    when: unarch is succeeded
+    register: packReload
+
+  - name: Nso restart
+    shell: "NCS_RELOAD_PACKAGES=true /etc/init.d/ncs restart"
+    when: nsoRestart != "WORESTART" and packReload is succeeded
+
+  - name: Nso version
+    shell: "echo 'show ncs-state version' | /opt/ncs/current/bin/ncs_cli -u admin -C"
+    register: nsoVersion
+
+  - debug:
+      msg="Nso current version {{ nsoVersion.stdout }}"
+    no_log: false
+
+  - name: Rmno packages version
+    shell: "echo 'show packages package package-version' | /opt/ncs/current/bin/ncs_cli -u admin -C"
+    when: packReload is succeeded
+    register: rmnoVersion
+
+  - debug:
+      msg="Rmno packages version \n{{ rmnoVersion.stdout }}"
+    no_log: false
+
+  - name: Rmno packages oper-status
+    shell: "echo 'show packages package oper-status up | tab' | /opt/ncs/current/bin/ncs_cli -u admin -C"
+    when: packReload is succeeded
+    register: nsoOper
+
+  - debug:
+      msg="Rmno packages oper-status \n{{ nsoOper.stdout }}"
+    no_log: false
+

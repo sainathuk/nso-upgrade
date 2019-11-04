@@ -1,0 +1,15 @@
+
+sh nso-upgrade --help
+
+nso-upgrade ( --host, -h <hostname|hostgroup>| [ --copy-files, -c <Local path> <Remote path> | --nso-backup, -b | --nso-upgrade, -n <Remote path> --wo-nso-restart | --service-upgrade, -s <Remote path> | --help ] )
+
+    --host, -h              : Host name or host group from inventory file (Multiple hosts can be given as comma separated).
+    --copy-files, -c        : Upload the files from client host to remote host; Need local path and remote path as parameters.
+                               Ex. sh nso-upgrade -h NSOCFS1 -c /tmp/test.tar /tmp/test.tar
+    --nso-backup, -b        : Execute ncs-backup command to all the hosts
+                               Ex. sh nso-upgrade -h NSOCFS1 -b
+    --nso-upgrade, -n       : Upgrade NSO with the given nso bin file; The path should be remote file path.
+                               Ex. sh nso-upgrade -h NSOCFS1 -n /tmp/nso-1.2.3.linux.x86_64.installer.bin --wo-nso-restart
+    --service-upgrade, -s   : Upgrade NSO service packages with the given bundle file; The path should be remote file path.
+                               Ex. sh nso-upgrade -h NSOCFS1 -s /tmp/bundle.tar.gz --wo-nso-restart
+
