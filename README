@@ -1,4 +1,14 @@
 
+Creating Inventory
+-------------------
+Open the inventory file and update the hostnames with respective host groups
+
+prerequisites
+--------------
+The hostname should be available at /etc/hosts or at ~/.ssh/config
+ssh key share should be done with the hosts                               
+
+
 sh nso-upgrade --help
 
 nso-upgrade ( --host, -h <hostname|hostgroup>| [ --copy-files, -c <Local path> <Remote path> | --nso-backup, -b | --nso-upgrade, -n <Remote path> --wo-nso-restart | --service-upgrade, -s <Remote path> | --help ] )
@@ -12,4 +22,5 @@ nso-upgrade ( --host, -h <hostname|hostgroup>| [ --copy-files, -c <Local path> <
                                Ex. sh nso-upgrade -h NSOCFS1 -n /tmp/nso-1.2.3.linux.x86_64.installer.bin --wo-nso-restart
     --service-upgrade, -s   : Upgrade NSO service packages with the given bundle file; The path should be remote file path.
                                Ex. sh nso-upgrade -h NSOCFS1 -s /tmp/bundle.tar.gz --wo-nso-restart
+                               
 
