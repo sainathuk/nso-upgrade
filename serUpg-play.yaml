@@ -21,6 +21,10 @@
     when: unarch is succeeded
     register: packReload
 
+  - debug:
+      msg="Packages reloaded \n{{ packReload.stdout }}"
+    no_log: false
+
   - name: Nso restart
     shell: "NCS_RELOAD_PACKAGES=true /etc/init.d/ncs restart"
     when: nsoRestart != "WORESTART" and packReload is succeeded
